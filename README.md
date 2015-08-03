@@ -3,20 +3,18 @@ libkkonnect
 
 libkkonnect is a library for connecting to Microsoft Kinect devices.
 
-Background, why : Two major versions of Kinect devices require 2 different
-client-side librarys.
+The goal is to provide a *single API* that supports:
 
-The goal is to provide a single API that supports:
-1. libfreenect, to access Kinect for XBox360
-2. libfreenect2, to access Kinect for XBoxOne and K4W2
-3. Remote kkonnect host, to access a remote Kinect via TCP/IP
-4. Access to multiple Kinect devices connected to a single physical host
+- Access to Kinect XBox360 (via libfreenect)
+- Access to Kinect XBoxOne and K4W2 (via libfreenect2)
+- Access to multiple Kinect devices connected to a single physical host
+- Access to a remote Kinect via TCP/IP (KKonnect host)
+- Optimized networking protocol to save bandwith
 
 
 # Build Instructions
 
 At this point the code is developed and tested on Linux only.
-Please contribute code to support other platforms.
 
 
 
@@ -26,6 +24,13 @@ Feel free to send pull requests to fix bugs. Please use issue tracker
 to start feature or any other discussions.
 
 The code should generally follow Google C++ Style Guide.
+
+Major areas of interest for contribution:
+
+- Support other platforms
+- Support neglected features (audio, motor, angle)
+- Secure TCP/IP communication
+- Plugin mechanisms for image filtering on kkonnect host
 
 
 # Maintainers
@@ -40,9 +45,9 @@ license. The licensing criteria are listed below, as well as at the
 top of each source file in the repo.
 
 ```
-This file is part of the OpenKinect Project. http://www.openkinect.org
+This file is part of the KKonnect project.
 
-Copyright (c) 2010 individual OpenKinect contributors. See the CONTRIB
+Copyright (c) 2015 individual KKonnect contributors. See the CONTRIB
 file for details.
 
 This code is licensed to you under the terms of the Apache License,

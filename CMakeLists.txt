@@ -1,6 +1,6 @@
-# This file is part of the kkonnect project.
+# This file is part of the KKonnect project.
 #
-# Copyright (c) 2015 individual kkonnect contributors. See the CONTRIB file
+# Copyright (c) 2015 individual KKonnect contributors. See the CONTRIB file
 # for details.
 #
 # This code is licensed to you under the terms of the Apache License, version
