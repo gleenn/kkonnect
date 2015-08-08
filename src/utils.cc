@@ -24,46 +24,29 @@
  * either License.
  */
 
-#ifndef KKONNECT_KK_CONNECTION_H_
-#define KKONNECT_KK_CONNECTION_H_
+#include "utils.h"
 
-#include "kk_device.h"
-#include "kk_errors.h"
+#include <stdint.h>
+#include <string.h>
 
 namespace kkonnect {
 
-// Provides access to all devices addressed by this connection.
-class Connection {
- public:
-  virtual ~Connection();
+void CopyImageData(void* dst, const void* src, int dst_row_size,
+		   int src_row_size, int height) {
+  CHECK(dst_row_size >= 0);
+  CHECK(src_row_size > 0);
+  CHECK(height >= 0);
+  if (!dst_row_size || dst_row_size == src_row_size) {
+    memcpy(dst, src, src_row_size * height);
+    return;
+  }
 
-  // Opens connection to all locally-attached devices.
-  static Connection* OpenLocal();
-
-  // Closes this connection. All opened Device objects become invalid.
-  void Close();
-
-  // Refreshes the list of connected devices.
-  virtual ErrorCode Refresh() = 0;
-
-  // Obtains device info or establishes connection with a device.
-  virtual int GetDeviceCount() = 0;
-  virtual ErrorCode GetDeviceInfo(int device_index, DeviceInfo* info) = 0;
-  virtual ErrorCode OpenDevice(int device_index, Device** device) = 0;
-  virtual void CloseDevice(Device* device) = 0;
-
- protected:
-  Connection();
-
-  virtual void CloseInternal() = 0;
-
- private:
-  Device* devices_;
-
-  Connection(const Connection& src);
-  Connection& operator=(const Connection& src);
-};
+  CHECK(dst_row_size > src_row_size);
+  for (int i = 0; i < height; ++i) {
+    memcpy(dst, src, src_row_size);
+    dst = reinterpret_cast<uint8_t*>(dst) + dst_row_size;
+    src = reinterpret_cast<const uint8_t*>(src) + src_row_size;
+  }
+}
 
 }  // namespace kkonnect
-
-#endif  // KKONNECT_KK_CONNECTION_H_

@@ -1,6 +1,6 @@
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-LIST(APPEND SRC hello.cc)
+LIST(APPEND SRC kk_device_freenect.cc utils.cc)
 
 add_library (kkonnect SHARED ${SRC})
 set_target_properties (kkonnect PROPERTIES

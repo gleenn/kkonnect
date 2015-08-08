@@ -27,6 +27,8 @@
 #ifndef KKONNECT_KK_DEVICE_H_
 #define KKONNECT_KK_DEVICE_H_
 
+#include <stdint.h>
+
 #include "kk_errors.h"
 
 namespace kkonnect {
@@ -41,42 +43,59 @@ enum DeviceVersion {
 
 struct DeviceInfo {
   DeviceVersion version;
+
+  explicit DeviceInfo(DeviceVersion version) : version(version) {}
 };
 
 // Contains information about the opened image stream.
 enum ImageFormat {
   // 24-bit RGB values.
-  kImageFormatCameraRgb = 0,
+  kImageFormatVideoRgb = 0,
   // 16-bit depth values, in mm.
   kImageFormatDepthMm = 20,
 };
 
 struct ImageInfo {
+  // Whether the stream is enabled.
+  // If disabled, all other fields have undefined values.
   bool enabled;
   int width;
   int height;
   ImageFormat format;
   int refresh_fps;
+
+  ImageInfo()
+      : enabled(false), width(0), height(0), format(kImageFormatVideoRgb),
+	refresh_fps(0) {}
+
+  ImageInfo(int width, int height, ImageFormat format, int refresh_fps)
+      : enabled(true), width(width), height(height), format(format),
+	refresh_fps(refresh_fps) {}
 };
 
 // Provides access to a given device's data.
 class Device {
  public:
-  const DeviceInfo& device_info() const { return info_; }
-  const ImageInfo& camera_info() const { return camera_info_; }
-  const ImageInfo& depth_info() const { return depth_info_; }
+  virtual DeviceInfo GetDeviceInfo() const = 0;
+  virtual ImageInfo GetVideoImageInfo() const = 0;
+  virtual ImageInfo GetDepthImageInfo() const = 0;
+
+  // Copies video data into |dst|. When non-zero, |row_size| defines
+  // the length of row in the target array, in bytes. Returns true
+  // if there was new data to copy. If there is no new data, returns false
+  // and does not modify any memory referenced by |dst|.
+  virtual bool GetAndClearVideoData(uint8_t* dst, int row_size) = 0;
+  virtual bool GetAndClearDepthData(uint16_t* dst, int row_size) = 0;
 
  protected:
-  Device(const DeviceInfo& info, const ImageInfo& camera_info,
-	 const ImageInfo& depth_info);
-  virtual ~Device();
+  Device() {}
+  virtual ~Device() {}
 
- private:
   friend class Connection;
 
-  DeviceInfo info_;
-  ImageInfo camera_info_;
-  ImageInfo depth_info_;
+ private:
+  Device(const Device& src);
+  Device& operator=(const Device& src);
 };
 
 }  // namespace kkonnect

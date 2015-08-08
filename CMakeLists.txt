@@ -26,10 +26,10 @@
 # Project declarations
 ################################################################################
 
-cmake_minimum_required(VERSION 2.6)
-set(PYTHON_EXECUTABLE "python2")
+cmake_minimum_required (VERSION 2.8)
+set (PYTHON_EXECUTABLE "python2")
 
-PROJECT(libkkonnect)
+project (libkkonnect)
 
 set (PROJECT_VER_MAJOR 0)
 set (PROJECT_VER_MINOR 1)
@@ -39,33 +39,54 @@ set (PROJECT_VER
 set (PROJECT_APIVER
   "${PROJECT_VER_MAJOR}.${PROJECT_VER_MINOR}")
 
-OPTION(BUILD_EXAMPLES "Build example programs" ON)
+option (BUILD_EXAMPLES "Build example programs" ON)
+
+################################################################################
+# External Dependencies
+################################################################################
+
+include (ExternalProject)
+
+ExternalProject_Add (project_libfreenect
+  SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/libfreenect
+  PREFIX libfreenect
+  INSTALL_COMMAND ""
+)
+
+ExternalProject_Add (project_libfreenect2
+  SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/libfreenect2/examples/protonect
+  PREFIX libfreenect2
+  INSTALL_COMMAND ""
+)
 
 ################################################################################
 # CMake
 ################################################################################
 
-SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
-SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
+set (EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
+set (LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 
-set(C_FLAGS_WARNING "-Wall")
+set (C_FLAGS_WARNING "-Wall")
 
-set(C_CXX_FLAGS_DEFAULT "${C_FLAGS_WARNING} -O2")
+set (C_CXX_FLAGS_DEFAULT "${C_FLAGS_WARNING} -O2")
 
-set(CMAKE_C_FLAGS "${C_CXX_FLAGS_DEFAULT} ${CMAKE_C_FLAGS}")
-SET(CMAKE_C_FLAGS_DEBUG   "${CMAKE_C_FLAGS} -O0 -g -DDEBUG=1")
-SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS}")
-SET(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELEASE} -g")
+set (CMAKE_C_FLAGS "${C_CXX_FLAGS_DEFAULT} ${CMAKE_C_FLAGS}")
+set (CMAKE_C_FLAGS_DEBUG   "${CMAKE_C_FLAGS} -O0 -g -DDEBUG=1")
+set (CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS}")
+set (CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELEASE} -g")
 
-set(CMAKE_CXX_FLAGS "${C_CXX_FLAGS_DEFAULT} ${CMAKE_CXX_FLAGS}")
-SET(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS} -O0 -g -DDEBUG=1")
-SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS}")
-SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELEASE} -g")
+set (CMAKE_CXX_FLAGS "${C_CXX_FLAGS_DEFAULT} ${CMAKE_CXX_FLAGS}")
+set (CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS} -O0 -g -DDEBUG=1")
+set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS}")
+set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELEASE} -g")
 
 include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories (${CMAKE_CURRENT_SOURCE_DIR})
+#include_directories (${CMAKE_CURRENT_SOURCE_DIR}/external/libfreenect/include)
+#include_directories (${CMAKE_CURRENT_SOURCE_DIR}/external/libfreenect2/include)
 
 add_subdirectory (src)
 
-IF(BUILD_EXAMPLES)
-  add_subdirectory (examples)
-ENDIF()
+if (BUILD_EXAMPLES)
+  #add_subdirectory (examples)
+endif()
