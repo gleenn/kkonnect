@@ -46,10 +46,10 @@ namespace kkonnect {
 
 // Represents connection to a single device.
 // All methods are invoked under devices_mutex_.
-class DeviceImpl : public Device {
+class DeviceFreenect : public Device {
  public:
-  DeviceImpl(freenect_device* device);
-  virtual ~DeviceImpl();
+  DeviceFreenect(freenect_device* device);
+  virtual ~DeviceFreenect();
 
   virtual DeviceInfo GetDeviceInfo() const;
   virtual ImageInfo GetVideoImageInfo() const;
@@ -80,7 +80,7 @@ class DeviceImpl : public Device {
   bool has_depth_update_;
 };
 
-DeviceImpl::DeviceImpl(freenect_device* device)
+DeviceFreenect::DeviceFreenect(freenect_device* device)
     : device_(device), last_video_data_(NULL), last_depth_data_(NULL),
       has_video_update_(false), has_depth_update_(false) {
   CHECK(device_);
@@ -92,7 +92,7 @@ DeviceImpl::DeviceImpl(freenect_device* device)
   depth_data2_ = new uint16_t[depth_data_size];
 }
 
-DeviceImpl::~DeviceImpl() {
+DeviceFreenect::~DeviceFreenect() {
   if (device_)
     freenect_close_device(device_);
 
@@ -102,11 +102,11 @@ DeviceImpl::~DeviceImpl() {
   delete[] depth_data2_;
 }
 
-DeviceInfo DeviceImpl::GetDeviceInfo() const {
+DeviceInfo DeviceFreenect::GetDeviceInfo() const {
   return DeviceInfo(kDeviceVersion1);
 }
 
-ImageInfo DeviceImpl::GetVideoImageInfo() const {
+ImageInfo DeviceFreenect::GetVideoImageInfo() const {
   if (false) {
     return ImageInfo();
   }
@@ -114,7 +114,7 @@ ImageInfo DeviceImpl::GetVideoImageInfo() const {
 		   DEVICE_FPS);
 }
 
-ImageInfo DeviceImpl::GetDepthImageInfo() const {
+ImageInfo DeviceFreenect::GetDepthImageInfo() const {
   if (false) {
     return ImageInfo();
   }
@@ -122,7 +122,7 @@ ImageInfo DeviceImpl::GetDepthImageInfo() const {
 		   DEVICE_FPS);
 }
 
-void DeviceImpl::Setup(bool video_enabled, bool depth_enabled) {
+void DeviceFreenect::Setup(bool video_enabled, bool depth_enabled) {
   Autolock l(mutex_);
   CHECK_FREENECT(freenect_set_led(device_, LED_RED));
   freenect_update_tilt_state(device_);
@@ -148,13 +148,13 @@ void DeviceImpl::Setup(bool video_enabled, bool depth_enabled) {
   }
 }
 
-void DeviceImpl::Teardown() {
+void DeviceFreenect::Teardown() {
   Autolock l(mutex_);
   freenect_stop_depth(device_);
   freenect_stop_video(device_);
 }
 
-void DeviceImpl::HandleVideoData(void* rgb_data) {
+void DeviceFreenect::HandleVideoData(void* rgb_data) {
   Autolock l(mutex_);
   last_video_data_ = reinterpret_cast<uint8_t*>(rgb_data);
   CHECK_FREENECT(freenect_set_video_buffer(
@@ -163,7 +163,7 @@ void DeviceImpl::HandleVideoData(void* rgb_data) {
   has_video_update_ = true;
 }
 
-void DeviceImpl::HandleDepthData(void* depth_data) {
+void DeviceFreenect::HandleDepthData(void* depth_data) {
   Autolock l(mutex_);
   last_depth_data_ = reinterpret_cast<uint16_t*>(depth_data);
   CHECK_FREENECT(freenect_set_depth_buffer(
@@ -172,7 +172,7 @@ void DeviceImpl::HandleDepthData(void* depth_data) {
   has_depth_update_ = true;
 }
 
-bool DeviceImpl::GetAndClearVideoData(uint8_t* dst, int row_size) {
+bool DeviceFreenect::GetAndClearVideoData(uint8_t* dst, int row_size) {
   Autolock l(mutex_);
   if (!has_video_update_) return false;
   CopyImageData(dst, last_video_data_, row_size, DEVICE_WIDTH * 3,
@@ -181,7 +181,7 @@ bool DeviceImpl::GetAndClearVideoData(uint8_t* dst, int row_size) {
   return true;
 }
 
-bool DeviceImpl::GetAndClearDepthData(uint16_t* dst, int row_size) {
+bool DeviceFreenect::GetAndClearDepthData(uint16_t* dst, int row_size) {
   Autolock l(mutex_);
   if (!has_depth_update_) return false;
   CopyImageData(dst, last_depth_data_, row_size, DEVICE_WIDTH * 2,
