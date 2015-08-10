@@ -59,6 +59,33 @@ ExternalProject_Add (project_libfreenect2
   INSTALL_COMMAND ""
 )
 
+ExternalProject_Add_Step (project_libfreenect2
+    static_lib_make_dir
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+        ${CMAKE_BINARY_DIR}/libfreenect2/src/project_libfreenect2-build/lib/
+    COMMENT "Making directory for libfreenect2 static library"
+)
+
+ExternalProject_Add_Step (project_libfreenect2
+    static_lib_copy
+    DEPENDEES static_lib_make_dir
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMAND ${CMAKE_COMMAND} -E copy external/libfreenect2/examples/protonect/lib/libfreenect2.a
+        ${CMAKE_BINARY_DIR}/libfreenect2/src/project_libfreenect2-build/lib/
+    COMMENT "Copying libfreenect2 static library"
+)
+
+add_library (libfreenect STATIC IMPORTED)
+set_target_properties (libfreenect PROPERTIES IMPORTED_LOCATION
+    ${CMAKE_BINARY_DIR}/libfreenect/src/project_libfreenect-build/lib/libfreenect.a)
+add_dependencies (libfreenect project_libfreenect)
+
+add_library (libfreenect2 STATIC IMPORTED)
+set_target_properties (libfreenect2 PROPERTIES IMPORTED_LOCATION
+    ${CMAKE_BINARY_DIR}/libfreenect2/src/project_libfreenect2-build/lib/libfreenect2.a)
+add_dependencies (libfreenect2 project_libfreenect2)
+
 ################################################################################
 # CMake
 ################################################################################

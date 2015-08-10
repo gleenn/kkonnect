@@ -45,18 +45,14 @@ DeviceInfo BaseFreenectDevice::GetDeviceInfo() const {
 
 ImageInfo BaseFreenectDevice::GetVideoImageInfo() const {
   Autolock l(mutex_);
-  if (!video_width_) {
-    return ImageInfo();
-  }
+  if (!IsVideoEnabledLocked()) return ImageInfo();
   return ImageInfo(video_width_, video_height_, kImageFormatVideoRgb,
 		   video_fps_);
 }
 
 ImageInfo BaseFreenectDevice::GetDepthImageInfo() const {
   Autolock l(mutex_);
-  if (!depth_width_) {
-    return ImageInfo();
-  }
+  if (!IsDepthEnabledLocked()) return ImageInfo();
   return ImageInfo(depth_width_, depth_height_, kImageFormatDepthMm,
 		   depth_fps_);
 }
@@ -98,18 +94,20 @@ int BaseFreenectDevice::GetDepthBufferSizeLocked() const {
 }
 
 void BaseFreenectDevice::SetVideoDataLocked(void* video_data) {
+  if (!IsVideoEnabledLocked()) return;
   last_video_data_ = reinterpret_cast<uint8_t*>(video_data);
   has_video_update_ = true;
 }
 
 void BaseFreenectDevice::SetDepthDataLocked(void* depth_data) {
+  if (!IsDepthEnabledLocked()) return;
   last_depth_data_ = reinterpret_cast<uint16_t*>(depth_data);
   has_depth_update_ = true;
 }
 
 bool BaseFreenectDevice::GetAndClearVideoData(uint8_t* dst, int row_size) {
   Autolock l(mutex_);
-  if (!has_video_update_ || !video_width_) return false;
+  if (!has_video_update_) return false;
   CopyImageData(dst, last_video_data_, row_size, video_width_ * 3,
 		video_height_);
   has_video_update_ = false;
@@ -118,7 +116,7 @@ bool BaseFreenectDevice::GetAndClearVideoData(uint8_t* dst, int row_size) {
 
 bool BaseFreenectDevice::GetAndClearDepthData(uint16_t* dst, int row_size) {
   Autolock l(mutex_);
-  if (!has_depth_update_ || !depth_width_) return false;
+  if (!has_depth_update_) return false;
   CopyImageData(dst, last_depth_data_, row_size, depth_width_ * 2,
 		depth_height_);
   has_depth_update_ = false;
