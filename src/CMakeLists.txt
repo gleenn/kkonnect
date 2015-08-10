@@ -1,9 +1,9 @@
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 LIST(APPEND SRC kk_connection.cc
-                kk_device_freenect.cc
-                kk_device_freenect2.cc
                 kk_freenect_base.cc
+                kk_freenect1_device.cc
+                kk_freenect2_device.cc
                 utils.cc)
 
 add_library (kkonnect SHARED ${SRC})
