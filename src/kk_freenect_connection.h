@@ -32,6 +32,7 @@
 
 #include "src/kk_freenect_base.h"
 #include "src/kk_freenect1_device.h"
+#include "src/kk_freenect2_device.h"
 #include "src/utils.h"
 
 namespace kkonnect {
@@ -60,14 +61,9 @@ class FreenectConnection : public Connection {
 
   bool GetVersionLocked(int device_index, DeviceVersion* version) const;
 
-  ErrorCode OpenDevice1Locked(
-      const DeviceOpenRequest& request, Device** device);
-  ErrorCode OpenDevice2Locked(
-      const DeviceOpenRequest& request, Device** device);
-
   static void* RunConnectLoop(void* arg);
-
   void RunConnectLoop();
+  BaseFreenectDevice* StartConnectingNextDeviceLocked();
 
   static void* RunFreenect1Loop(void* arg);
   static void OnFreenect1DepthCallback(
@@ -79,14 +75,26 @@ class FreenectConnection : public Connection {
   void HandleFreenect1VideoData(freenect_device* dev, void* rgb_data);
   Freenect1Device* FindFreenect1Locked(freenect_device* dev) const;
 
+  static void OnFreenect2DepthCallback(
+      freenect2_device* dev, uint32_t timestamp, void* depth_data, void* user);
+  static void OnFreenect2VideoCallback(
+      freenect2_device* dev, uint32_t timestamp, void* video_data, void* user);
+  void HandleFreenect2DepthData(freenect2_device* dev, void* depth_data);
+  void HandleFreenect2VideoData(freenect2_device* dev, void* video_data);
+  Freenect2Device* FindFreenect2Locked(freenect2_device* dev) const;
+
+  static pthread_mutex_t global_mutex_;
   static FreenectConnection* instance_;
 
   int ref_count_;
   volatile bool should_exit_;
   pthread_t connection_thread_;
+  pthread_cond_t connection_cond_;
   freenect_context* freenect1_context_;
   pthread_t freenect1_thread_;
   int freenect1_device_count_;
+  freenect2_context* freenect2_context_;
+  int freenect2_device_count_;
 };
 
 }  // namespace kkonnect

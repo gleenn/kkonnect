@@ -37,10 +37,10 @@ namespace kkonnect {
 
 Freenect1Device::Freenect1Device(
     freenect_context* context, freenect_video_cb video_cb,
-    freenect_depth_cb depth_cb)
+    freenect_depth_cb depth_cb, const DeviceOpenRequest& request)
     : BaseFreenectDevice(kDeviceVersion1), context_(context),
-      video_cb_(video_cb), depth_cb_(depth_cb), device_(NULL),
-      video_data1_(NULL), video_data2_(NULL),
+      video_cb_(video_cb), depth_cb_(depth_cb), open_request_(request),
+      device_(NULL), video_data1_(NULL), video_data2_(NULL),
       depth_data1_(NULL), depth_data2_(NULL) {}
 
 Freenect1Device::~Freenect1Device() {
@@ -53,9 +53,9 @@ Freenect1Device::~Freenect1Device() {
   delete[] depth_data2_;
 }
 
-void Freenect1Device::Connect(const DeviceOpenRequest& request) {
+void Freenect1Device::Connect() {
   CHECK(!device_);
-  int device_index = request.device_index;
+  int device_index = open_request_.device_index;
   fprintf(stderr, "Connecting to Kinect1 #%d\n", device_index);
 
   int openAttempt = 1;
@@ -81,7 +81,7 @@ void Freenect1Device::Connect(const DeviceOpenRequest& request) {
   freenect_update_tilt_state(device_);
   freenect_get_tilt_state(device_);
 
-  if (request.video_format == kImageFormatVideoRgb) {
+  if (open_request_.video_format == kImageFormatVideoRgb) {
     // TODO(igorc): Try switching to compressed UYVY and depth streams.
     // Use YUV_RGB as it forces 15Hz refresh rate and takes 2 bytes per pixel.
     CHECK_FREENECT(freenect_set_video_mode(
@@ -94,7 +94,7 @@ void Freenect1Device::Connect(const DeviceOpenRequest& request) {
     freenect_set_video_callback(device_, video_cb_);
   }
 
-  if (request.depth_format == kImageFormatDepthMm) {
+  if (open_request_.depth_format == kImageFormatDepthMm) {
     CHECK_FREENECT(freenect_set_depth_mode(
 	device_, freenect_find_depth_mode(
 	FREENECT_RESOLUTION_MEDIUM, FREENECT_DEPTH_MM)));

@@ -41,10 +41,10 @@ namespace kkonnect {
 
 Freenect2Device::Freenect2Device(
     freenect2_context* context, freenect2_video_cb video_cb,
-    freenect2_depth_cb depth_cb)
+    freenect2_depth_cb depth_cb, const DeviceOpenRequest& request)
     : BaseFreenectDevice(kDeviceVersion2), context_(context),
-      video_cb_(video_cb), depth_cb_(depth_cb), device_(NULL),
-      video_data_(NULL), depth_data_(NULL) {}
+      video_cb_(video_cb), depth_cb_(depth_cb), open_request_(request),
+      device_(NULL), video_data_(NULL), depth_data_(NULL) {}
 
 Freenect2Device::~Freenect2Device() {
   if (device_)
@@ -54,9 +54,9 @@ Freenect2Device::~Freenect2Device() {
   delete[] depth_data_;
 }
 
-void Freenect2Device::Connect(const DeviceOpenRequest& request) {
+void Freenect2Device::Connect() {
   CHECK(!device_);
-  int device_index = request.device_index;
+  int device_index = open_request_.device_index;
   fprintf(stderr, "Connecting to Kinect1 #%d\n", device_index);
 
   int openAttempt = 1;
@@ -79,7 +79,7 @@ void Freenect2Device::Connect(const DeviceOpenRequest& request) {
   Autolock l(mutex_);
   device_ = device_raw;
 
-  if (request.video_format == kImageFormatVideoRgb) {
+  if (open_request_.video_format == kImageFormatVideoRgb) {
     // TODO(igorc): Find modes that produce lower FPS and bandwidth.
     CHECK_FREENECT(freenect2_set_video_mode(
 	device_, freenect2_find_video_mode(
@@ -89,7 +89,7 @@ void Freenect2Device::Connect(const DeviceOpenRequest& request) {
     freenect2_set_video_callback(device_, video_cb_, NULL);
   }
 
-  if (request.depth_format == kImageFormatDepthMm) {
+  if (open_request_.depth_format == kImageFormatDepthMm) {
     CHECK_FREENECT(freenect2_set_depth_mode(
 	device_, freenect2_find_depth_mode(
 	FREENECT2_RESOLUTION_512x424, FREENECT2_DEPTH_MM)));

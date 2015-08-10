@@ -59,10 +59,13 @@ class BaseFreenectDevice : public Device {
   virtual bool GetAndClearDepthData(uint16_t* dst, int row_size);
 
   // Connects and starts the device stream.
-  virtual void Connect(const DeviceOpenRequest& request) = 0;
+  virtual void Connect() = 0;
 
   // Stops the device before calling the destructor.
   virtual void Stop() = 0;
+
+  // Returns true if it was not marked before.
+  bool MarkConnectStarted();
 
  protected:
   void SetStatusLocked(ErrorCode status);
@@ -82,6 +85,7 @@ class BaseFreenectDevice : public Device {
  private:
   DeviceVersion version_;
   ErrorCode status_;
+  bool connect_started_;
   uint8_t* last_video_data_;
   uint16_t* last_depth_data_;
   bool has_video_update_;

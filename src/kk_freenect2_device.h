@@ -39,10 +39,10 @@ class Freenect2Device : public BaseFreenectDevice {
  public:
   Freenect2Device(
       freenect2_context* context, freenect2_video_cb video_cb,
-      freenect2_depth_cb depth_cb);
+      freenect2_depth_cb depth_cb, const DeviceOpenRequest& request);
   virtual ~Freenect2Device();
 
-  virtual void Connect(const DeviceOpenRequest& request);
+  virtual void Connect();
   virtual void Stop();
 
   void HandleDepthData(void* depth_data);
@@ -54,6 +54,7 @@ class Freenect2Device : public BaseFreenectDevice {
   freenect2_context* context_;
   freenect2_video_cb video_cb_;
   freenect2_depth_cb depth_cb_;
+  DeviceOpenRequest open_request_;
   freenect2_device* device_;
   uint8_t* video_data_;
   uint16_t* depth_data_;

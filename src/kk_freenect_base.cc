@@ -61,6 +61,13 @@ ImageInfo BaseFreenectDevice::GetDepthImageInfo() const {
 		   depth_fps_);
 }
 
+bool BaseFreenectDevice::MarkConnectStarted() {
+  Autolock l(mutex_);
+  if (connect_started_) return false;
+  connect_started_ = true;
+  return true;
+}
+
 ErrorCode BaseFreenectDevice::GetStatus() const {
   Autolock l(mutex_);
   return status_;
