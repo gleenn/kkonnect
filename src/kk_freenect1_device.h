@@ -24,21 +24,40 @@
  * either License.
  */
 
-#ifndef KKONNECT_KK_ERRORS_H_
-#define KKONNECT_KK_ERRORS_H_
+#ifndef KKONNECT_KK_FREENECT1_DEVICE_H_
+#define KKONNECT_KK_FREENECT1_DEVICE_H_
+
+#include <pthread.h>
+
+#include "external/libfreenect/include/libfreenect.h"
+#include "src/kk_freenect_base.h"
 
 namespace kkonnect {
 
-// Defines error codes returned by various kkonnect functions.
-enum ErrorCode {
-  kErrorSuccess = 0,
-  kErrorInvalidArgument = 1,
-  kErrorUnknownDevice = 2,
-  kErrorAlreadyOpened = 3,
-  kErrorInProgress = 4,
-  kErrorUnableToConnect = 5,
+// Implements Device for a libfreenect device.
+class Freenect1Device : public BaseFreenectDevice {
+ public:
+  Freenect1Device();
+  virtual ~Freenect1Device();
+
+  void Connect(freenect_context* context,
+	       const DeviceOpenRequest& request);
+  void Start();
+  void Stop();
+
+  void HandleDepthData(void* depth_data);
+  void HandleVideoData(void* video_data);
+
+  freenect_device* device() { return device_; }
+
+ private:
+  freenect_device* device_;
+  uint8_t* video_data1_;
+  uint8_t* video_data2_;
+  uint16_t* depth_data1_;
+  uint16_t* depth_data2_;
 };
 
 }  // namespace kkonnect
 
-#endif  // KKONNECT_KK_ERRORS_H_
+#endif  // KKONNECT_KK_FREENECT1_DEVICE_H_

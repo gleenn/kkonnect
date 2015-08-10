@@ -26,10 +26,36 @@
 
 #include "utils.h"
 
-#include <stdint.h>
-#include <string.h>
+#include <sys/types.h>
+#include <time.h>
+#include <unistd.h>
 
 namespace kkonnect {
+
+uint64_t GetCurrentMillis() {
+  struct timespec time;
+  if (clock_gettime(CLOCK_MONOTONIC, &time) == -1) {
+    REPORT_ERRNO("clock_gettime(monotonic)");
+    CHECK(false);
+  }
+  return ((uint64_t) time.tv_sec) * 1000 + time.tv_nsec / 1000000;
+}
+
+void Sleep(double seconds) {
+  struct timespec req;
+  struct timespec rem;
+  req.tv_sec = (int) seconds;
+  req.tv_nsec = (long) ((seconds - req.tv_sec) * 1000000000.0);
+  rem.tv_sec = 0;
+  rem.tv_nsec = 0;
+  while (nanosleep(&req, &rem) == -1) {
+    if (errno != EINTR) {
+      REPORT_ERRNO("nanosleep");
+      break;
+    }
+    req = rem;
+  }
+}
 
 void CopyImageData(void* dst, const void* src, int dst_row_size,
 		   int src_row_size, int height) {

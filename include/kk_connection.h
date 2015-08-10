@@ -27,6 +27,8 @@
 #ifndef KKONNECT_KK_CONNECTION_H_
 #define KKONNECT_KK_CONNECTION_H_
 
+#include <pthread.h>
+
 #include "kk_device.h"
 #include "kk_errors.h"
 
@@ -35,29 +37,41 @@ namespace kkonnect {
 // Provides access to all devices addressed by this connection.
 class Connection {
  public:
-  virtual ~Connection();
-
   // Opens connection to all locally-attached devices.
   static Connection* OpenLocal();
 
   // Closes this connection. All opened Device objects become invalid.
+  // This method will invoke Connection's destructor.
   void Close();
 
   // Refreshes the list of connected devices.
   virtual ErrorCode Refresh() = 0;
 
   // Obtains device info or establishes connection with a device.
+  // Device indexes may only get updated on Refresh() call.
   virtual int GetDeviceCount() = 0;
   virtual ErrorCode GetDeviceInfo(int device_index, DeviceInfo* info) = 0;
-  virtual ErrorCode OpenDevice(int device_index, Device** device) = 0;
-  virtual void CloseDevice(Device* device) = 0;
+
+  ErrorCode OpenDevice(const DeviceOpenRequest& request, Device** device);
+  void CloseDevice(Device* device);
 
  protected:
   Connection();
+  virtual ~Connection();
 
-  virtual void CloseInternal() = 0;
+  // Invoked by Close() after closing all open devices.
+  // Implementation of this method must destroy the connection object.
+  virtual void CloseInternalLocked() = 0;
+
+  virtual ErrorCode OpenDeviceInternalLocked(
+      const DeviceOpenRequest& request, Device** device) = 0;
+  virtual void CloseDeviceInternalLocked(Device* device) = 0;
+
+  mutable pthread_mutex_t mutex_;
 
  private:
+  void CloseDeviceLocked(Device* device);
+
   Device* devices_;
 
   Connection(const Connection& src);

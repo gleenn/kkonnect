@@ -27,9 +27,12 @@
 #ifndef KKONNECT_UTILS_H_
 #define KKONNECT_UTILS_H_
 
+#include <errno.h>
 #include <pthread.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
@@ -43,6 +46,10 @@ namespace kkonnect {
             __FILE__, __FUNCTION__, __LINE__);                  \
     exit(-1);                                                   \
   }
+
+#define REPORT_ERRNO(name)                           \
+  fprintf(stderr, "Failure in '%s' call: %d, %s\n",  \
+          name, errno, strerror(errno));
 
 class Autolock {
  public:
@@ -68,6 +75,10 @@ class Autolock {
 
   pthread_mutex_t* lock_;
 };
+
+uint64_t GetCurrentMillis();
+
+void Sleep(double seconds);
 
 // Copies rows from src to dst, adjusting rows by provided sizes.
 // |dst_row_size| can be zero, which means it is the same as |src_row_size|.

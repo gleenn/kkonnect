@@ -29,6 +29,8 @@
 
 #include <stdint.h>
 
+#include <cstddef>
+
 #include "kk_errors.h"
 
 namespace kkonnect {
@@ -49,10 +51,11 @@ struct DeviceInfo {
 
 // Contains information about the opened image stream.
 enum ImageFormat {
+  kImageFormatNone = 0,
   // 24-bit RGB values.
-  kImageFormatVideoRgb = 0,
+  kImageFormatVideoRgb = 100,
   // 16-bit depth values, in mm.
-  kImageFormatDepthMm = 20,
+  kImageFormatDepthMm = 200,
 };
 
 struct ImageInfo {
@@ -65,7 +68,7 @@ struct ImageInfo {
   int refresh_fps;
 
   ImageInfo()
-      : enabled(false), width(0), height(0), format(kImageFormatVideoRgb),
+      : enabled(false), width(0), height(0), format(kImageFormatNone),
 	refresh_fps(0) {}
 
   ImageInfo(int width, int height, ImageFormat format, int refresh_fps)
@@ -73,12 +76,28 @@ struct ImageInfo {
 	refresh_fps(refresh_fps) {}
 };
 
+struct DeviceOpenRequest {
+  int device_index;
+  ImageFormat depth_format;
+  ImageFormat video_format;
+
+  DeviceOpenRequest(int device_index)
+      : device_index(device_index), depth_format(kImageFormatNone),
+	video_format(kImageFormatNone) {}
+};
+
 // Provides access to a given device's data.
+// TODO(igorc): Expose freenect log messages.
 class Device {
  public:
   virtual DeviceInfo GetDeviceInfo() const = 0;
   virtual ImageInfo GetVideoImageInfo() const = 0;
   virtual ImageInfo GetDepthImageInfo() const = 0;
+
+  // Returns kErrorSuccess once the device has finished connecting.
+  // Returns kErrorInProgress while the device is still connecting.
+  // Returns another error code if the device is in an error state.
+  virtual ErrorCode GetStatus() const = 0;
 
   // Copies video data into |dst|. When non-zero, |row_size| defines
   // the length of row in the target array, in bytes. Returns true
@@ -88,12 +107,16 @@ class Device {
   virtual bool GetAndClearDepthData(uint16_t* dst, int row_size) = 0;
 
  protected:
-  Device() {}
+  Device() : next_(NULL), index_(-1) {}
   virtual ~Device() {}
+
+ private:
+  Device* next_;
+  // TODO(igorc): Update after Refresh().
+  int index_;
 
   friend class Connection;
 
- private:
   Device(const Device& src);
   Device& operator=(const Device& src);
 };

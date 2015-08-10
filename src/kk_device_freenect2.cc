@@ -28,68 +28,22 @@
 
 #include <string.h>
 
-#include "external/libfreenect2/include/libfreenect2.h"
+#include "src/kk_freenect2_device.h"
 #include "src/utils.h"
 
 namespace kkonnect {
 
-#define CHECK_FREENECT(call)                                            \
-    { int res__ = (call);                                               \
-      if (res__) {                                                      \
-        fprintf(stderr, "EXITING with check-fail at %s (%s:%d): %d"     \
-                ". Condition = '" TOSTRING(call) "'\n",                 \
-                __FILE__, __FUNCTION__, __LINE__, res__);               \
-        exit(-1);                                                       \
-      } }
+#define MAX_DEVICE_OPEN_ATTEMPTS   10
 
 #define DEVICE_WIDTH     512
 #define DEVICE_HEIGHT    424
 #define DEVICE_FPS       15
 
-// Represents connection to a single device.
-// All methods are invoked under devices_mutex_.
-class DeviceFreenect2 : public Device {
- public:
-  DeviceFreenect2(freenect2_device* device);
-  virtual ~DeviceFreenect2();
+Freenect2Device::Freenect2Device()
+    : BaseFreenectDevice(kDeviceVersion1), device_(NULL),
+      video_data_(NULL), depth_data_(NULL) {}
 
-  virtual DeviceInfo GetDeviceInfo() const;
-  virtual ImageInfo GetVideoImageInfo() const;
-  virtual ImageInfo GetDepthImageInfo() const;
-
-  virtual bool GetAndClearVideoData(uint8_t* dst, int row_size);
-  virtual bool GetAndClearDepthData(uint16_t* dst, int row_size);
-
-
-  void Setup(bool video_enabled, bool depth_enabled);
-  void Teardown();
-
-  void HandleDepthData(void* depth_data);
-  void HandleVideoData(void* rgb_data);
-
-  const freenect2_device* device() { return device_; }
-
- private:
-  mutable pthread_mutex_t mutex_ = PTHREAD_MUTEX_INITIALIZER;
-  freenect2_device* device_;
-  uint8_t* video_data_;
-  uint16_t* depth_data_;
-  int video_data_size_;
-  int depth_data_size_;
-  bool has_video_update_;
-  bool has_depth_update_;
-};
-
-DeviceFreenect2::DeviceFreenect2(freenect2_device* device)
-    : device_(device), has_video_update_(false), has_depth_update_(false) {
-  CHECK(device_);
-  video_data_size_ = DEVICE_WIDTH * DEVICE_HEIGHT * 3;
-  depth_data_size_ = DEVICE_WIDTH * DEVICE_HEIGHT * 2;
-  video_data_ = new uint8_t[video_data_size_];
-  depth_data_ = new uint16_t[depth_data_size_];
-}
-
-DeviceFreenect2::~DeviceFreenect2() {
+Freenect2Device::~Freenect2Device() {
   if (device_)
     freenect2_close_device(device_);
 
@@ -97,80 +51,80 @@ DeviceFreenect2::~DeviceFreenect2() {
   delete[] depth_data_;
 }
 
-DeviceInfo DeviceFreenect2::GetDeviceInfo() const {
-  return DeviceInfo(kDeviceVersion2);
-}
+void Freenect2Device::Connect(freenect2_context* context,
+                              const DeviceOpenRequest& request) {
+  CHECK(!device_);
+  int device_index = request.device_index;
+  fprintf(stderr, "Connecting to Kinect1 #%d\n", device_index);
 
-ImageInfo DeviceFreenect2::GetVideoImageInfo() const {
-  if (false) {
-    return ImageInfo();
+  int openAttempt = 1;
+  freenect2_device* device_raw = NULL;
+  while (true) {
+    int res = freenect2_open_device(context, &device_raw, device_index);
+    if (!res) break;
+    if (openAttempt >= MAX_DEVICE_OPEN_ATTEMPTS) {
+      // TODO(igorc): Log and return an error.
+      Autolock l(mutex_);
+      SetStatusLocked(kErrorUnableToConnect);
+      CHECK_FREENECT(res);
+      return;
+    }
+    Sleep(0.5);
+    fprintf(
+        stderr, "Retrying freenect_open_device on #%d after error %d\n",
+        device_index, res);
+    ++openAttempt;
   }
-  return ImageInfo(DEVICE_WIDTH, DEVICE_HEIGHT, kImageFormatVideoRgb,
-		   DEVICE_FPS);
-}
 
-ImageInfo DeviceFreenect2::GetDepthImageInfo() const {
-  if (false) {
-    return ImageInfo();
-  }
-  return ImageInfo(DEVICE_WIDTH, DEVICE_HEIGHT, kImageFormatDepthMm,
-		   DEVICE_FPS);
-}
-
-void DeviceFreenect2::Setup(bool video_enabled, bool depth_enabled) {
   Autolock l(mutex_);
-  // TODO(igorc): Find modes that produce lower FPS and bandwidth.
-  CHECK_FREENECT(freenect2_set_depth_mode(
-      device_, freenect2_find_depth_mode(
-	  FREENECT2_RESOLUTION_512x424, FREENECT2_DEPTH_MM)));
-  CHECK_FREENECT(freenect2_set_video_mode(
-      device_, freenect2_find_video_mode(
-	  FREENECT2_RESOLUTION_512x424, FREENECT2_VIDEO_RGB)));
+  device_ = device_raw;
 
-  if (video_enabled) {
+  if (request.video_format == kImageFormatVideoRgb) {
+    // TODO(igorc): Find modes that produce lower FPS and bandwidth.
+    CHECK_FREENECT(freenect2_set_video_mode(
+	device_, freenect2_find_video_mode(
+	FREENECT2_RESOLUTION_512x424, FREENECT2_VIDEO_RGB)));
+    SetVideoParamsLocked(DEVICE_WIDTH, DEVICE_HEIGHT, DEVICE_FPS);
+    video_data_ = new uint8_t[GetVideoBufferSizeLocked()];
+  }
+
+  if (request.depth_format == kImageFormatDepthMm) {
+    CHECK_FREENECT(freenect2_set_depth_mode(
+	device_, freenect2_find_depth_mode(
+	FREENECT2_RESOLUTION_512x424, FREENECT2_DEPTH_MM)));
+    SetDepthParamsLocked(DEVICE_WIDTH, DEVICE_HEIGHT, DEVICE_FPS);
+    depth_data_ = new uint16_t[GetDepthBufferSizeLocked()];
+  }
+}
+
+void Freenect2Device::Start() {
+  Autolock l(mutex_);
+  if (IsVideoEnabledLocked()) {
     CHECK_FREENECT(freenect2_start_video(device_));
     fprintf(stderr, "Connected to Kinect2 video stream\n");
   }
-  if (depth_enabled) {
+  if (IsDepthEnabledLocked()) {
     CHECK_FREENECT(freenect2_start_depth(device_));
     fprintf(stderr, "Connected to Kinect2 depth stream\n");
   }
 }
 
-void DeviceFreenect2::Teardown() {
+void Freenect2Device::Stop() {
   Autolock l(mutex_);
-  freenect2_stop_depth(device_);
-  freenect2_stop_video(device_);
+  if (IsVideoEnabledLocked()) freenect2_stop_video(device_);
+  if (IsDepthEnabledLocked()) freenect2_stop_depth(device_);
 }
 
-void DeviceFreenect2::HandleVideoData(void* rgb_data) {
+void Freenect2Device::HandleVideoData(void* video_data) {
   Autolock l(mutex_);
-  memcpy(video_data_, rgb_data, video_data_size_);
-  has_video_update_ = true;
+  memcpy(video_data_, video_data, GetVideoBufferSizeLocked());
+  SetVideoDataLocked(depth_data_);
 }
 
-void DeviceFreenect2::HandleDepthData(void* depth_data) {
+void Freenect2Device::HandleDepthData(void* depth_data) {
   Autolock l(mutex_);
-  memcpy(depth_data_, depth_data, depth_data_size_);
-  has_depth_update_ = true;
-}
-
-bool DeviceFreenect2::GetAndClearVideoData(uint8_t* dst, int row_size) {
-  Autolock l(mutex_);
-  if (!has_video_update_) return false;
-  CopyImageData(dst, video_data_, row_size, DEVICE_WIDTH * 3,
-		DEVICE_HEIGHT);
-  has_video_update_ = false;
-  return true;
-}
-
-bool DeviceFreenect2::GetAndClearDepthData(uint16_t* dst, int row_size) {
-  Autolock l(mutex_);
-  if (!has_depth_update_) return false;
-  CopyImageData(dst, depth_data_, row_size, DEVICE_WIDTH * 2,
-		DEVICE_HEIGHT);
-  has_depth_update_ = false;
-  return true;
+  memcpy(depth_data_, depth_data, GetDepthBufferSizeLocked());
+  SetDepthDataLocked(depth_data_);
 }
 
 }  // namespace kkonnect
