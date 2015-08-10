@@ -137,4 +137,25 @@ void Freenect2Device::HandleDepthData(void* depth_data) {
   SetDepthDataLocked(depth_data_);
 }
 
+bool FrameListenerImpl::onNewFrame(
+    libfreenect2::Frame::Type type, libfreenect2::Frame* frame) {
+  if (type == libfreenect2::Frame::Color) {
+    CHECK(frame->width == DEVICE_WIDTH);
+    CHECK(frame->height == DEVICE_HEIGHT);
+    CHECK(frame->bytes_per_pixel == 3);
+    device_->HandleVideoData(frame->data);
+    return true;
+  }
+
+  if (type == libfreenect2::Frame::Depth) {
+    CHECK(frame->width == DEVICE_WIDTH);
+    CHECK(frame->height == DEVICE_HEIGHT);
+    CHECK(frame->bytes_per_pixel == 2);
+    device_->HandleDepthData(frame->data);
+    return true;
+  }
+
+  return true;
+}
+
 }  // namespace kkonnect
