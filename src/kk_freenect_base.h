@@ -58,8 +58,10 @@ class BaseFreenectDevice : public Device {
   virtual bool GetAndClearVideoData(uint8_t* dst, int row_size);
   virtual bool GetAndClearDepthData(uint16_t* dst, int row_size);
 
-  virtual ErrorCode Connect() = 0;
-  virtual void Start() = 0;
+  // Connects and starts the device stream.
+  virtual void Connect(const DeviceOpenRequest& request) = 0;
+
+  // Stops the device before calling the destructor.
   virtual void Stop() = 0;
 
  protected:

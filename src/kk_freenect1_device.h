@@ -37,13 +37,13 @@ namespace kkonnect {
 // Implements Device for a libfreenect device.
 class Freenect1Device : public BaseFreenectDevice {
  public:
-  Freenect1Device();
+  Freenect1Device(
+      freenect_context* context, freenect_video_cb video_cb,
+      freenect_depth_cb depth_cb);
   virtual ~Freenect1Device();
 
-  void Connect(freenect_context* context,
-	       const DeviceOpenRequest& request);
-  void Start();
-  void Stop();
+  virtual void Connect(const DeviceOpenRequest& request);
+  virtual void Stop();
 
   void HandleDepthData(void* depth_data);
   void HandleVideoData(void* video_data);
@@ -51,6 +51,9 @@ class Freenect1Device : public BaseFreenectDevice {
   freenect_device* device() { return device_; }
 
  private:
+  freenect_context* context_;
+  freenect_video_cb video_cb_;
+  freenect_depth_cb depth_cb_;
   freenect_device* device_;
   uint8_t* video_data1_;
   uint8_t* video_data2_;

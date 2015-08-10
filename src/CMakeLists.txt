@@ -2,6 +2,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 LIST(APPEND SRC kk_connection.cc
                 kk_freenect_base.cc
+                kk_freenect_connection.cc
                 kk_freenect1_device.cc
                 kk_freenect2_device.cc
                 utils.cc)

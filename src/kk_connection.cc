@@ -26,13 +26,14 @@
 
 #include <kk_connection.h>
 
+#include "src/kk_freenect_connection.h"
 #include "src/utils.h"
 
 namespace kkonnect {
 
 // static
 Connection* Connection::OpenLocal() {
- // TODO(igorc): Implement.
+  return FreenectConnection::GetInstanceImpl();
 }
 
 Connection::Connection() : devices_(NULL) {

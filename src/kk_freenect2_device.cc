@@ -39,8 +39,11 @@ namespace kkonnect {
 #define DEVICE_HEIGHT    424
 #define DEVICE_FPS       15
 
-Freenect2Device::Freenect2Device()
-    : BaseFreenectDevice(kDeviceVersion1), device_(NULL),
+Freenect2Device::Freenect2Device(
+    freenect2_context* context, freenect2_video_cb video_cb,
+    freenect2_depth_cb depth_cb)
+    : BaseFreenectDevice(kDeviceVersion2), context_(context),
+      video_cb_(video_cb), depth_cb_(depth_cb), device_(NULL),
       video_data_(NULL), depth_data_(NULL) {}
 
 Freenect2Device::~Freenect2Device() {
@@ -51,8 +54,7 @@ Freenect2Device::~Freenect2Device() {
   delete[] depth_data_;
 }
 
-void Freenect2Device::Connect(freenect2_context* context,
-                              const DeviceOpenRequest& request) {
+void Freenect2Device::Connect(const DeviceOpenRequest& request) {
   CHECK(!device_);
   int device_index = request.device_index;
   fprintf(stderr, "Connecting to Kinect1 #%d\n", device_index);
@@ -60,19 +62,17 @@ void Freenect2Device::Connect(freenect2_context* context,
   int openAttempt = 1;
   freenect2_device* device_raw = NULL;
   while (true) {
-    int res = freenect2_open_device(context, &device_raw, device_index);
+    int res = freenect2_open_device(context_, &device_raw, device_index);
     if (!res) break;
+    fprintf(
+        stderr, "Failed freenect2_open_device on #%d, error=%d, attempt=%d\n",
+        device_index, res, openAttempt);
     if (openAttempt >= MAX_DEVICE_OPEN_ATTEMPTS) {
-      // TODO(igorc): Log and return an error.
       Autolock l(mutex_);
       SetStatusLocked(kErrorUnableToConnect);
-      CHECK_FREENECT(res);
       return;
     }
     Sleep(0.5);
-    fprintf(
-        stderr, "Retrying freenect_open_device on #%d after error %d\n",
-        device_index, res);
     ++openAttempt;
   }
 
@@ -86,6 +86,7 @@ void Freenect2Device::Connect(freenect2_context* context,
 	FREENECT2_RESOLUTION_512x424, FREENECT2_VIDEO_RGB)));
     SetVideoParamsLocked(DEVICE_WIDTH, DEVICE_HEIGHT, DEVICE_FPS);
     video_data_ = new uint8_t[GetVideoBufferSizeLocked()];
+    freenect2_set_video_callback(device_, video_cb_, NULL);
   }
 
   if (request.depth_format == kImageFormatDepthMm) {
@@ -94,19 +95,20 @@ void Freenect2Device::Connect(freenect2_context* context,
 	FREENECT2_RESOLUTION_512x424, FREENECT2_DEPTH_MM)));
     SetDepthParamsLocked(DEVICE_WIDTH, DEVICE_HEIGHT, DEVICE_FPS);
     depth_data_ = new uint16_t[GetDepthBufferSizeLocked()];
+    freenect2_set_depth_callback(device_, depth_cb_, NULL);
   }
-}
 
-void Freenect2Device::Start() {
-  Autolock l(mutex_);
   if (IsVideoEnabledLocked()) {
     CHECK_FREENECT(freenect2_start_video(device_));
     fprintf(stderr, "Connected to Kinect2 video stream\n");
   }
+
   if (IsDepthEnabledLocked()) {
     CHECK_FREENECT(freenect2_start_depth(device_));
     fprintf(stderr, "Connected to Kinect2 depth stream\n");
   }
+
+  SetStatusLocked(kErrorSuccess);
 }
 
 void Freenect2Device::Stop() {

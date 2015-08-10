@@ -67,6 +67,10 @@ class Connection {
       const DeviceOpenRequest& request, Device** device) = 0;
   virtual void CloseDeviceInternalLocked(Device* device) = 0;
 
+  // Iterates over the list of all open devices.
+  Device* GetFirstDeviceLocked() const { return devices_; }
+  Device* GetNextDeviceLocked(Device* device) const { return device->next_; }
+
   mutable pthread_mutex_t mutex_;
 
  private:
