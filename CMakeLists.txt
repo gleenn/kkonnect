@@ -109,8 +109,8 @@ set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELEASE} -g")
 
 include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories (${CMAKE_CURRENT_SOURCE_DIR})
-#include_directories (${CMAKE_CURRENT_SOURCE_DIR}/external/libfreenect/include)
-#include_directories (${CMAKE_CURRENT_SOURCE_DIR}/external/libfreenect2/include)
+include_directories (${CMAKE_CURRENT_SOURCE_DIR}/external/libfreenect/include)
+include_directories (${CMAKE_CURRENT_SOURCE_DIR}/external/libfreenect2/examples/protonect/include)
 
 add_subdirectory (src)
 

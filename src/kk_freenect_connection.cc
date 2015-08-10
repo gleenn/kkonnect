@@ -71,7 +71,7 @@ void FreenectConnection::DecRefLocked() {
 
 void FreenectConnection::CloseInternalLocked() {
   should_exit_ = true;
-  if (freenect2_context_) freenect2_shutdown(freenect2_context_);
+  delete freenect2_context_;
   if (freenect1_context_) freenect_shutdown(freenect1_context_);
   pthread_cond_broadcast(&connection_cond_);
   // TODO(igorc): De-init, but do not destroy. Also wait for threads to exit.
@@ -123,12 +123,15 @@ ErrorCode FreenectConnection::Refresh() {
   }
 
   if (!freenect2_context_) {
-    CHECK_FREENECT(freenect2_init(&freenect2_context_, NULL));
-    freenect2_set_log_level(freenect2_context_, FREENECT2_LOG_DEBUG);
+    freenect2_context_ = new libfreenect2::Freenect2();
+    // freenect2_set_log_level(freenect2_context_, FREENECT2_LOG_DEBUG);
   }
 
   freenect1_device_count_ = freenect_num_devices(freenect1_context_);
-  fprintf(stderr, "Found %d Kinect1 devices\n", freenect1_device_count_);
+  freenect2_device_count_ = freenect2_context_->enumerateDevices();
+
+  fprintf(stderr, "Found %d Kinect1 and %d Kinect2 devices\n",
+	  freenect1_device_count_, freenect2_device_count_);
 
   return kErrorSuccess;
 }
@@ -148,9 +151,7 @@ ErrorCode FreenectConnection::OpenDeviceInternalLocked(
   } else {
     DeviceOpenRequest request2 = request;
     request2.device_index -= freenect1_device_count_;
-    base_device = new Freenect2Device(
-        freenect2_context_, OnFreenect2VideoCallback, OnFreenect2DepthCallback,
-	request2);
+    base_device = new Freenect2Device(freenect2_context_, request2);
   }
 
   pthread_cond_broadcast(&connection_cond_);
@@ -259,54 +260,6 @@ void FreenectConnection::HandleFreenect1VideoData(
     freenect_device* dev, void* video_data) {
   Autolock l(mutex_);
   Freenect1Device* device = FindFreenect1Locked(dev);
-  if (!device) return;  // Closed.
-  device->HandleVideoData(video_data);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// FREENECT2 METHODS
-////////////////////////////////////////////////////////////////////////////////
-
-// static
-void FreenectConnection::OnFreenect2DepthCallback(
-    freenect2_device* dev, uint32_t timestamp, void* depth_data, void* user) {
-  (void) timestamp;
-  (void) user;
-  GetInstanceImpl()->HandleFreenect2DepthData(dev, depth_data);
-}
-
-// static
-void FreenectConnection::OnFreenect2VideoCallback(
-    freenect2_device* dev, uint32_t timestamp, void* video_data, void* user) {
-  (void) timestamp;
-  (void) user;
-  GetInstanceImpl()->HandleFreenect2VideoData(dev, video_data);
-}
-
-Freenect2Device* FreenectConnection::FindFreenect2Locked(
-    freenect2_device* dev) const {
-  Device* device = GetFirstDeviceLocked();
-  while (device) {
-    if (device->GetDeviceInfo().version != kDeviceVersion2) continue;
-    Freenect2Device* device2 = reinterpret_cast<Freenect2Device*>(device);
-    if (device2->device() == dev) return device2;
-    device = GetNextDeviceLocked(device);
-  }
-  return NULL;
-}
-
-void FreenectConnection::HandleFreenect2DepthData(
-    freenect2_device* dev, void* depth_data) {
-  Autolock l(mutex_);
-  Freenect2Device* device = FindFreenect2Locked(dev);
-  if (!device) return;  // Closed.
-  device->HandleDepthData(depth_data);
-}
-
-void FreenectConnection::HandleFreenect2VideoData(
-    freenect2_device* dev, void* video_data) {
-  Autolock l(mutex_);
-  Freenect2Device* device = FindFreenect2Locked(dev);
   if (!device) return;  // Closed.
   device->HandleVideoData(video_data);
 }

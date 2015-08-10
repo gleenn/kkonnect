@@ -75,14 +75,6 @@ class FreenectConnection : public Connection {
   void HandleFreenect1VideoData(freenect_device* dev, void* rgb_data);
   Freenect1Device* FindFreenect1Locked(freenect_device* dev) const;
 
-  static void OnFreenect2DepthCallback(
-      freenect2_device* dev, uint32_t timestamp, void* depth_data, void* user);
-  static void OnFreenect2VideoCallback(
-      freenect2_device* dev, uint32_t timestamp, void* video_data, void* user);
-  void HandleFreenect2DepthData(freenect2_device* dev, void* depth_data);
-  void HandleFreenect2VideoData(freenect2_device* dev, void* video_data);
-  Freenect2Device* FindFreenect2Locked(freenect2_device* dev) const;
-
   static pthread_mutex_t global_mutex_;
   static FreenectConnection* instance_;
 
@@ -93,7 +85,7 @@ class FreenectConnection : public Connection {
   freenect_context* freenect1_context_;
   pthread_t freenect1_thread_;
   int freenect1_device_count_;
-  freenect2_context* freenect2_context_;
+  libfreenect2::Freenect2* freenect2_context_;
   int freenect2_device_count_;
 };
 

@@ -39,19 +39,35 @@ namespace kkonnect {
 #define DEVICE_HEIGHT    424
 #define DEVICE_FPS       15
 
+class FrameListenerImpl : public libfreenect2::FrameListener {
+ public:
+  FrameListenerImpl(Freenect2Device* device) : device_(device) {}
+  virtual ~FrameListenerImpl() {}
+
+  virtual bool onNewFrame(
+      libfreenect2::Frame::Type type, libfreenect2::Frame* frame);
+
+ private:
+  Freenect2Device* device_;
+};
+
 Freenect2Device::Freenect2Device(
-    freenect2_context* context, freenect2_video_cb video_cb,
-    freenect2_depth_cb depth_cb, const DeviceOpenRequest& request)
+    libfreenect2::Freenect2* context, const DeviceOpenRequest& request)
     : BaseFreenectDevice(kDeviceVersion2), context_(context),
-      video_cb_(video_cb), depth_cb_(depth_cb), open_request_(request),
-      device_(NULL), video_data_(NULL), depth_data_(NULL) {}
+      open_request_(request), device_(NULL), video_data_(NULL),
+      depth_data_(NULL) {
+  callback_ = new FrameListenerImpl(this);
+}
 
 Freenect2Device::~Freenect2Device() {
-  if (device_)
-    freenect2_close_device(device_);
+  if (device_) {
+    device_->close();
+    delete device_;
+  }
 
   delete[] video_data_;
   delete[] depth_data_;
+  delete callback_;
 }
 
 void Freenect2Device::Connect() {
@@ -60,13 +76,13 @@ void Freenect2Device::Connect() {
   fprintf(stderr, "Connecting to Kinect1 #%d\n", device_index);
 
   int openAttempt = 1;
-  freenect2_device* device_raw = NULL;
+  libfreenect2::Freenect2Device* device_raw = NULL;
   while (true) {
-    int res = freenect2_open_device(context_, &device_raw, device_index);
-    if (!res) break;
+    device_raw = context_->openDevice(device_index);
+    if (!device_raw) break;
     fprintf(
-        stderr, "Failed freenect2_open_device on #%d, error=%d, attempt=%d\n",
-        device_index, res, openAttempt);
+        stderr, "Failed freenect2_open_device on #%d, attempt=%d\n",
+        device_index, openAttempt);
     if (openAttempt >= MAX_DEVICE_OPEN_ATTEMPTS) {
       Autolock l(mutex_);
       SetStatusLocked(kErrorUnableToConnect);
@@ -81,40 +97,32 @@ void Freenect2Device::Connect() {
 
   if (open_request_.video_format == kImageFormatVideoRgb) {
     // TODO(igorc): Find modes that produce lower FPS and bandwidth.
-    CHECK_FREENECT(freenect2_set_video_mode(
-	device_, freenect2_find_video_mode(
-	FREENECT2_RESOLUTION_512x424, FREENECT2_VIDEO_RGB)));
+    // CHECK_FREENECT(freenect2_set_video_mode(
+    //    device_, freenect2_find_video_mode(
+    //    FREENECT2_RESOLUTION_512x424, FREENECT2_VIDEO_RGB)));
     SetVideoParamsLocked(DEVICE_WIDTH, DEVICE_HEIGHT, DEVICE_FPS);
     video_data_ = new uint8_t[GetVideoBufferSizeLocked()];
-    freenect2_set_video_callback(device_, video_cb_, NULL);
+    device_->setColorFrameListener(callback_);
   }
 
   if (open_request_.depth_format == kImageFormatDepthMm) {
-    CHECK_FREENECT(freenect2_set_depth_mode(
-	device_, freenect2_find_depth_mode(
-	FREENECT2_RESOLUTION_512x424, FREENECT2_DEPTH_MM)));
+    // CHECK_FREENECT(freenect2_set_depth_mode(
+    //    device_, freenect2_find_depth_mode(
+    //    FREENECT2_RESOLUTION_512x424, FREENECT2_DEPTH_MM)));
     SetDepthParamsLocked(DEVICE_WIDTH, DEVICE_HEIGHT, DEVICE_FPS);
     depth_data_ = new uint16_t[GetDepthBufferSizeLocked()];
-    freenect2_set_depth_callback(device_, depth_cb_, NULL);
+    device_->setIrAndDepthFrameListener(callback_);
   }
 
-  if (IsVideoEnabledLocked()) {
-    CHECK_FREENECT(freenect2_start_video(device_));
-    fprintf(stderr, "Connected to Kinect2 video stream\n");
-  }
-
-  if (IsDepthEnabledLocked()) {
-    CHECK_FREENECT(freenect2_start_depth(device_));
-    fprintf(stderr, "Connected to Kinect2 depth stream\n");
-  }
+  device_->start();
+  fprintf(stderr, "Connected to Kinect2 streams\n");
 
   SetStatusLocked(kErrorSuccess);
 }
 
 void Freenect2Device::Stop() {
   Autolock l(mutex_);
-  if (IsVideoEnabledLocked()) freenect2_stop_video(device_);
-  if (IsDepthEnabledLocked()) freenect2_stop_depth(device_);
+  device_->stop();
 }
 
 void Freenect2Device::HandleVideoData(void* video_data) {

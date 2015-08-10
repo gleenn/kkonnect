@@ -27,9 +27,11 @@
 #ifndef KKONNECT_KK_FREENECT2_DEVICE_H_
 #define KKONNECT_KK_FREENECT2_DEVICE_H_
 
+#include <string>  // Because libfreenect2.hpp forgot to include it.
+
+#include <libfreenect2/libfreenect2.hpp>
 #include <pthread.h>
 
-#include "external/libfreenect2/include/libfreenect2.h"
 #include "src/kk_freenect_base.h"
 
 namespace kkonnect {
@@ -38,8 +40,7 @@ namespace kkonnect {
 class Freenect2Device : public BaseFreenectDevice {
  public:
   Freenect2Device(
-      freenect2_context* context, freenect2_video_cb video_cb,
-      freenect2_depth_cb depth_cb, const DeviceOpenRequest& request);
+      libfreenect2::Freenect2* context, const DeviceOpenRequest& request);
   virtual ~Freenect2Device();
 
   virtual void Connect();
@@ -48,14 +49,13 @@ class Freenect2Device : public BaseFreenectDevice {
   void HandleDepthData(void* depth_data);
   void HandleVideoData(void* video_data);
 
-  const freenect2_device* device() { return device_; }
+  const libfreenect2::Freenect2Device* device() { return device_; }
 
  private:
-  freenect2_context* context_;
-  freenect2_video_cb video_cb_;
-  freenect2_depth_cb depth_cb_;
+  libfreenect2::Freenect2* context_;
+  libfreenect2::FrameListener* callback_;
   DeviceOpenRequest open_request_;
-  freenect2_device* device_;
+  libfreenect2::Freenect2Device* device_;
   uint8_t* video_data_;
   uint16_t* depth_data_;
 };
