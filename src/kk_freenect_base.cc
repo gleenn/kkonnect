@@ -29,7 +29,7 @@
 namespace kkonnect {
 
 BaseFreenectDevice::BaseFreenectDevice(DeviceVersion version)
-  : version_(version), status_(kErrorInProgress),
+  : version_(version), status_(kErrorInProgress), connect_started_(false),
     last_video_data_(NULL), last_depth_data_(NULL),
     has_video_update_(false), has_depth_update_(false),
     video_width_(0), video_height_(0), video_fps_(0),
@@ -109,7 +109,7 @@ bool BaseFreenectDevice::GetAndClearVideoData(uint8_t* dst, int row_size) {
   Autolock l(mutex_);
   if (!has_video_update_) return false;
   CopyImageData(dst, last_video_data_, row_size, video_width_ * 3,
-		video_height_);
+                video_height_);
   has_video_update_ = false;
   return true;
 }
@@ -118,7 +118,7 @@ bool BaseFreenectDevice::GetAndClearDepthData(uint16_t* dst, int row_size) {
   Autolock l(mutex_);
   if (!has_depth_update_) return false;
   CopyImageData(dst, last_depth_data_, row_size, depth_width_ * 2,
-		depth_height_);
+                depth_height_);
   has_depth_update_ = false;
   return true;
 }
