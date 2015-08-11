@@ -79,7 +79,7 @@ void Freenect2Device::Connect() {
   libfreenect2::Freenect2Device* device_raw = NULL;
   while (true) {
     device_raw = context_->openDevice(device_index);
-    if (!device_raw) break;
+    if (device_raw) break;
     fprintf(
         stderr, "Failed freenect2_open_device on #%d, attempt=%d\n",
         device_index, openAttempt);
@@ -122,7 +122,7 @@ void Freenect2Device::Connect() {
 
 void Freenect2Device::Stop() {
   Autolock l(mutex_);
-  device_->stop();
+  if (device_) device_->stop();
 }
 
 void Freenect2Device::HandleVideoData(void* video_data) {
