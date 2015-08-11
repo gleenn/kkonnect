@@ -4,3 +4,6 @@
 [submodule "external/libfreenect2"]
 	path = external/libfreenect2
 	url = https://github.com/OpenKinect/libfreenect2.git
+[submodule "external/libusb"]
+	path = external/libusb
+	url = https://github.com/libusb/libusb.git
