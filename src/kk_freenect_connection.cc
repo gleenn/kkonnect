@@ -35,6 +35,8 @@ namespace kkonnect {
 // COMMON METHODS
 ////////////////////////////////////////////////////////////////////////////////
 
+#define LIBUSB_ERROR_INTERRUPTED  -10
+
 pthread_mutex_t FreenectConnection::global_mutex_ = PTHREAD_MUTEX_INITIALIZER;
 FreenectConnection* FreenectConnection::instance_ = NULL;
 
@@ -218,7 +220,12 @@ void* FreenectConnection::RunFreenect1Loop(void* arg) {
 
 void FreenectConnection::RunFreenect1Loop() {
   while (!should_exit_) {
-    CHECK_FREENECT(freenect_process_events(freenect1_context_));
+    int res = freenect_process_events(freenect1_context_);
+    if (res == LIBUSB_ERROR_INTERRUPTED) {
+      fprintf(stderr, "freenect1: LIBUSB_ERROR_INTERRUPTED\n");
+      continue;
+    }
+    CHECK_FREENECT(res);
   }
 }
 

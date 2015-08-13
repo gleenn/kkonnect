@@ -133,7 +133,10 @@ void Freenect2Device::HandleVideoData(void* video_data) {
 
 void Freenect2Device::HandleDepthData(void* depth_data) {
   Autolock l(mutex_);
-  memcpy(depth_data_, depth_data, GetDepthBufferSizeLocked());
+  uint32_t* depth_data2 = reinterpret_cast<uint32_t*>(depth_data);
+  for (int i = 0; i < DEVICE_WIDTH * DEVICE_HEIGHT; ++i) {
+    depth_data_[i] = depth_data2[i];
+  }
   SetDepthDataLocked(depth_data_);
 }
 
@@ -148,9 +151,12 @@ bool FrameListenerImpl::onNewFrame(
   }
 
   if (type == libfreenect2::Frame::Depth) {
+    fprintf(stderr, "Params = %d %d %d\n",
+	    (int)frame->width, (int)frame->height,
+	    (int)frame->bytes_per_pixel);
     CHECK(frame->width == DEVICE_WIDTH);
     CHECK(frame->height == DEVICE_HEIGHT);
-    CHECK(frame->bytes_per_pixel == 2);
+    CHECK(frame->bytes_per_pixel == 4);
     device_->HandleDepthData(frame->data);
     return true;
   }

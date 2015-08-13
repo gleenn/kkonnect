@@ -17,6 +17,7 @@ target_link_libraries (kkonnect PUBLIC libfreenect)
 target_link_libraries (kkonnect PUBLIC libfreenect2)
 target_link_libraries (kkonnect PRIVATE libusb)
 target_link_libraries (kkonnect PRIVATE turbojpeg)
+target_link_libraries (kkonnect OpenCL)
 set_target_properties (kkonnect PROPERTIES
   VERSION ${PROJECT_VER}
   SOVERSION ${PROJECT_APIVER})
