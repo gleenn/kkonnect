@@ -61,6 +61,7 @@ ExternalProject_Add (project_libfreenect2
 
 ExternalProject_Add_Step (project_libfreenect2
     static_lib_make_dir
+    DEPENDEES configure build
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND ${CMAKE_COMMAND} -E make_directory
         ${CMAKE_BINARY_DIR}/libfreenect2/src/project_libfreenect2-build/lib/
