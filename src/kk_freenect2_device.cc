@@ -151,9 +151,9 @@ bool FrameListenerImpl::onNewFrame(
   }
 
   if (type == libfreenect2::Frame::Depth) {
-    fprintf(stderr, "Params = %d %d %d\n",
-	    (int)frame->width, (int)frame->height,
-	    (int)frame->bytes_per_pixel);
+    // fprintf(stderr, "Params = %d %d %d\n",
+    //     (int)frame->width, (int)frame->height,
+    //     (int)frame->bytes_per_pixel);
     CHECK(frame->width == DEVICE_WIDTH);
     CHECK(frame->height == DEVICE_HEIGHT);
     CHECK(frame->bytes_per_pixel == 4);

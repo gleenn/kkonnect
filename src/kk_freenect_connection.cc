@@ -53,7 +53,7 @@ FreenectConnection* FreenectConnection::GetInstanceImpl() {
 FreenectConnection::FreenectConnection()
     : ref_count_(1), should_exit_(false),
       freenect1_context_(NULL), freenect1_device_count_(0),
-      freenect2_context_(NULL), freenect2_device_count_(0) {
+      /*freenect2_context_(NULL),*/ freenect2_device_count_(0) {
   pthread_cond_init(&connection_cond_, NULL);
 }
 
@@ -73,7 +73,8 @@ void FreenectConnection::DecRefLocked() {
 
 void FreenectConnection::CloseInternalLocked() {
   should_exit_ = true;
-  delete freenect2_context_;
+  fprintf(stderr, "FreenectConnection::CloseInternalLocked()\n");
+  // delete freenect2_context_;
   if (freenect1_context_) freenect_shutdown(freenect1_context_);
   pthread_cond_broadcast(&connection_cond_);
   // TODO(igorc): De-init, but do not destroy. Also wait for threads to exit.
@@ -124,13 +125,13 @@ ErrorCode FreenectConnection::Refresh() {
     ref_count_ += 2;
   }
 
-  if (!freenect2_context_) {
+  /*if (!freenect2_context_) {
     freenect2_context_ = new libfreenect2::Freenect2();
     // freenect2_set_log_level(freenect2_context_, FREENECT2_LOG_DEBUG);
-  }
+  }*/
 
   freenect1_device_count_ = freenect_num_devices(freenect1_context_);
-  freenect2_device_count_ = freenect2_context_->enumerateDevices();
+  freenect2_device_count_ = 0;  // freenect2_context_->enumerateDevices();
 
   fprintf(stderr, "Found %d Kinect1 and %d Kinect2 devices\n",
 	  freenect1_device_count_, freenect2_device_count_);
@@ -151,9 +152,10 @@ ErrorCode FreenectConnection::OpenDeviceInternalLocked(
         freenect1_context_, OnFreenect1VideoCallback, OnFreenect1DepthCallback,
 	request);
   } else {
-    DeviceOpenRequest request2 = request;
-    request2.device_index -= freenect1_device_count_;
-    base_device = new Freenect2Device(freenect2_context_, request2);
+    return kErrorUnknownDevice;
+    // DeviceOpenRequest request2 = request;
+    // request2.device_index -= freenect1_device_count_;
+    // base_device = new Freenect2Device(freenect2_context_, request2);
   }
 
   pthread_cond_broadcast(&connection_cond_);

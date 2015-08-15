@@ -32,7 +32,7 @@
 
 #include "src/kk_freenect_base.h"
 #include "src/kk_freenect1_device.h"
-#include "src/kk_freenect2_device.h"
+// #include "src/kk_freenect2_device.h"
 #include "src/utils.h"
 
 namespace kkonnect {
@@ -85,7 +85,7 @@ class FreenectConnection : public Connection {
   freenect_context* freenect1_context_;
   pthread_t freenect1_thread_;
   int freenect1_device_count_;
-  libfreenect2::Freenect2* freenect2_context_;
+  // libfreenect2::Freenect2* freenect2_context_;
   int freenect2_device_count_;
 };
 

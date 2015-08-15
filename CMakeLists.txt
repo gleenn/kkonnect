@@ -53,53 +53,53 @@ ExternalProject_Add (project_libfreenect
   INSTALL_COMMAND ""
 )
 
-ExternalProject_Add (project_libfreenect2
-  SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/libfreenect2/examples/protonect
-  PREFIX libfreenect2
-  INSTALL_COMMAND ""
-)
+#ExternalProject_Add (project_libfreenect2
+#  SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/libfreenect2/examples/protonect
+#  PREFIX libfreenect2
+#  INSTALL_COMMAND ""
+#)
 
-ExternalProject_Add_Step (project_libfreenect2
-  static_lib_make_dir
-  DEPENDEES configure build
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  COMMAND ${CMAKE_COMMAND} -E make_directory
-      ${CMAKE_BINARY_DIR}/libfreenect2/src/project_libfreenect2-build/lib/
-  COMMENT "Making directory for libfreenect2 static library"
-)
+#ExternalProject_Add_Step (project_libfreenect2
+#  static_lib_make_dir
+#  DEPENDEES configure build
+#  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+#  COMMAND ${CMAKE_COMMAND} -E make_directory
+#      ${CMAKE_BINARY_DIR}/libfreenect2/src/project_libfreenect2-build/lib/
+#  COMMENT "Making directory for libfreenect2 static library"
+#)
 
-ExternalProject_Add_Step (project_libfreenect2
-  static_lib_copy
-  DEPENDEES static_lib_make_dir
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  COMMAND ${CMAKE_COMMAND} -E copy external/libfreenect2/examples/protonect/lib/libfreenect2.a
-      ${CMAKE_BINARY_DIR}/libfreenect2/src/project_libfreenect2-build/lib/
-  COMMENT "Copying libfreenect2 static library"
-)
+#ExternalProject_Add_Step (project_libfreenect2
+#  static_lib_copy
+#  DEPENDEES static_lib_make_dir
+#  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+#  COMMAND ${CMAKE_COMMAND} -E copy external/libfreenect2/examples/protonect/lib/libfreenect2.a
+#      ${CMAKE_BINARY_DIR}/libfreenect2/src/project_libfreenect2-build/lib/
+#  COMMENT "Copying libfreenect2 static library"
+#)
 
-ExternalProject_Add(project_libusb
-  SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/libusb
-  BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/libusb
-  PREFIX libusb
-  CONFIGURE_COMMAND /usr/bin/python ${CMAKE_CURRENT_SOURCE_DIR}/libusb_config.py ${CMAKE_CURRENT_BINARY_DIR}/libusb
-  BUILD_COMMAND make CFLAGS=-fPIC CXXFLAGS=-fPIC
-  INSTALL_COMMAND ""
-)
+#ExternalProject_Add(project_libusb
+#  SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/libusb
+#  BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/libusb
+#  PREFIX libusb
+#  CONFIGURE_COMMAND /usr/bin/python ${CMAKE_CURRENT_SOURCE_DIR}/libusb_config.py ${CMAKE_CURRENT_BINARY_DIR}/libusb
+#  BUILD_COMMAND make CFLAGS=-fPIC CXXFLAGS=-fPIC
+#  INSTALL_COMMAND ""
+#)
 
 add_library (libfreenect STATIC IMPORTED)
 set_target_properties (libfreenect PROPERTIES IMPORTED_LOCATION
   ${CMAKE_BINARY_DIR}/libfreenect/src/project_libfreenect-build/lib/libfreenect.a)
 add_dependencies (libfreenect project_libfreenect)
 
-add_library (libfreenect2 STATIC IMPORTED)
-set_target_properties (libfreenect2 PROPERTIES IMPORTED_LOCATION
-  ${CMAKE_BINARY_DIR}/libfreenect2/src/project_libfreenect2-build/lib/libfreenect2.a)
-add_dependencies (libfreenect2 project_libfreenect2)
+#add_library (libfreenect2 STATIC IMPORTED)
+#set_target_properties (libfreenect2 PROPERTIES IMPORTED_LOCATION
+#  ${CMAKE_BINARY_DIR}/libfreenect2/src/project_libfreenect2-build/lib/libfreenect2.a)
+#add_dependencies (libfreenect2 project_libfreenect2)
 
-add_library (libusb STATIC IMPORTED)
-set_target_properties (libusb PROPERTIES IMPORTED_LOCATION
-  ${CMAKE_CURRENT_SOURCE_DIR}/external/libusb/libusb/.libs/libusb-1.0.a)
-add_dependencies (libusb project_libusb)
+#add_library (libusb STATIC IMPORTED)
+#set_target_properties (libusb PROPERTIES IMPORTED_LOCATION
+#  ${CMAKE_CURRENT_SOURCE_DIR}/external/libusb/libusb/.libs/libusb-1.0.a)
+#add_dependencies (libusb project_libusb)
 
 ################################################################################
 # CMake
