@@ -43,12 +43,15 @@ class Freenect1Device : public BaseFreenectDevice {
   virtual ~Freenect1Device();
 
   virtual void Connect();
-  virtual void Stop();
 
   void HandleDepthData(void* depth_data);
   void HandleVideoData(void* video_data);
 
   freenect_device* device() { return device_; }
+
+ protected:
+  virtual void CloseLocked();
+  virtual void StopLocked();
 
  private:
   freenect_context* context_;

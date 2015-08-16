@@ -62,12 +62,16 @@ class BaseFreenectDevice : public Device {
   virtual void Connect() = 0;
 
   // Stops the device before calling the destructor.
-  virtual void Stop() = 0;
+  void Stop();
 
   // Returns true if it was not marked before.
   bool MarkConnectStarted();
 
  protected:
+  virtual void CloseLocked() = 0;
+  virtual void StopLocked() = 0;
+
+  void UpdateHealthTimerLocked();
   void SetStatusLocked(ErrorCode status);
 
   void SetVideoParamsLocked(int width, int height, int fps);
@@ -86,6 +90,7 @@ class BaseFreenectDevice : public Device {
   DeviceVersion version_;
   ErrorCode status_;
   bool connect_started_;
+  uint64_t last_health_time_;
   uint8_t* last_video_data_;
   uint16_t* last_depth_data_;
   bool has_video_update_;

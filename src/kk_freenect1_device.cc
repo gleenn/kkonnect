@@ -44,13 +44,19 @@ Freenect1Device::Freenect1Device(
       depth_data1_(NULL), depth_data2_(NULL) {}
 
 Freenect1Device::~Freenect1Device() {
-  if (device_)
-    freenect_close_device(device_);
+  CloseLocked();
 
   delete[] video_data1_;
   delete[] video_data2_;
   delete[] depth_data1_;
   delete[] depth_data2_;
+}
+
+void Freenect1Device::CloseLocked() {
+  if (device_) {
+    freenect_close_device(device_);
+    device_ = NULL;
+  }
 }
 
 void Freenect1Device::Connect() {
@@ -63,20 +69,26 @@ void Freenect1Device::Connect() {
   while (true) {
     int res = freenect_open_device(context_, &device_raw, device_index);
     if (!res) break;
-    fprintf(
-        stderr, "Failed freenect_open_device on #%d, error=%d, attempt=%d\n",
-        device_index, res, openAttempt);
-    if (openAttempt >= MAX_DEVICE_OPEN_ATTEMPTS) {
+
+    {
       Autolock l(mutex_);
-      SetStatusLocked(kErrorUnableToConnect);
-      return;
+      UpdateHealthTimerLocked();
+      fprintf(
+          stderr, "Failed freenect_open_device on #%d, error=%d, attempt=%d\n",
+          device_index, res, openAttempt);
+      if (openAttempt >= MAX_DEVICE_OPEN_ATTEMPTS) {
+        SetStatusLocked(kErrorUnableToConnect);
+        return;
+      }
     }
+
     Sleep(0.5);
     ++openAttempt;
   }
 
   Autolock l(mutex_);
   device_ = device_raw;
+  UpdateHealthTimerLocked();
   CHECK_FREENECT(freenect_set_led(device_, LED_RED));
   freenect_update_tilt_state(device_);
   freenect_get_tilt_state(device_);
@@ -108,18 +120,19 @@ void Freenect1Device::Connect() {
   if (IsVideoEnabledLocked()) {
     CHECK_FREENECT(freenect_start_video(device_));
     fprintf(stderr, "Connected to Kinect1 video stream\n");
+    UpdateHealthTimerLocked();
   }
 
   if (IsDepthEnabledLocked()) {
     CHECK_FREENECT(freenect_start_depth(device_));
     fprintf(stderr, "Connected to Kinect1 depth stream\n");
+    UpdateHealthTimerLocked();
   }
 
   SetStatusLocked(kErrorSuccess);
 }
 
-void Freenect1Device::Stop() {
-  Autolock l(mutex_);
+void Freenect1Device::StopLocked() {
   if (IsVideoEnabledLocked()) freenect_stop_video(device_);
   if (IsDepthEnabledLocked()) freenect_stop_depth(device_);
 }

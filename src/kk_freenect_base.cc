@@ -35,6 +35,7 @@ BaseFreenectDevice::BaseFreenectDevice(DeviceVersion version)
     video_width_(0), video_height_(0), video_fps_(0),
     depth_width_(0), depth_height_(0), depth_fps_(0) {
   pthread_mutex_init(&mutex_, NULL);
+  UpdateHealthTimerLocked();
 }
 
 BaseFreenectDevice::~BaseFreenectDevice() {}
@@ -57,10 +58,31 @@ ImageInfo BaseFreenectDevice::GetDepthImageInfo() const {
 		   depth_fps_);
 }
 
+void BaseFreenectDevice::UpdateHealthTimerLocked() {
+  last_health_time_ = GetCurrentMillis();
+}
+
+void BaseFreenectDevice::Stop() {
+  Autolock l(mutex_);
+  StopLocked();
+}
+
 bool BaseFreenectDevice::MarkConnectStarted() {
   Autolock l(mutex_);
+
+  uint64_t timeout = GetCurrentMillis() - last_health_time_;
+  if (status_ == kErrorSuccess && timeout > 20 * 1000) {
+    fprintf(stderr,
+	    "Detected unhealthy freenect1 device, closing and reconnecting\n");
+    StopLocked();
+    CloseLocked();
+    connect_started_ = false;
+    SetStatusLocked(kErrorInProgress);
+  }
+
   if (connect_started_) return false;
   connect_started_ = true;
+  UpdateHealthTimerLocked();
   return true;
 }
 
@@ -71,6 +93,7 @@ ErrorCode BaseFreenectDevice::GetStatus() const {
 
 void BaseFreenectDevice::SetStatusLocked(ErrorCode status) {
   status_ = status;
+  UpdateHealthTimerLocked();
 }
 
 void BaseFreenectDevice::SetVideoParamsLocked(int width, int height, int fps) {
@@ -97,12 +120,14 @@ void BaseFreenectDevice::SetVideoDataLocked(void* video_data) {
   if (!IsVideoEnabledLocked()) return;
   last_video_data_ = reinterpret_cast<uint8_t*>(video_data);
   has_video_update_ = true;
+  UpdateHealthTimerLocked();
 }
 
 void BaseFreenectDevice::SetDepthDataLocked(void* depth_data) {
   if (!IsDepthEnabledLocked()) return;
   last_depth_data_ = reinterpret_cast<uint16_t*>(depth_data);
   has_depth_update_ = true;
+  UpdateHealthTimerLocked();
 }
 
 bool BaseFreenectDevice::GetAndClearVideoData(uint8_t* dst, int row_size) {

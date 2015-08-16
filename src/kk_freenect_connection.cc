@@ -190,7 +190,14 @@ void FreenectConnection::RunConnectLoop() {
       Autolock l(mutex_);
       device = StartConnectingNextDeviceLocked();
       if (!device) {
-        pthread_cond_wait(&connection_cond_, &mutex_);
+        // Wake up every second for health check.
+        const int kTimeoutMs = 1000;
+        struct timespec abstime;
+        struct timeval now;
+        gettimeofday(&now, NULL);
+        abstime.tv_sec = now.tv_sec + 5;
+        abstime.tv_nsec = (now.tv_usec + 1000UL * kTimeoutMs) * 1000UL;
+        pthread_cond_timedwait(&connection_cond_, &mutex_, &abstime);
         continue;
       }
     }
@@ -225,9 +232,9 @@ void FreenectConnection::RunFreenect1Loop() {
     int res = freenect_process_events(freenect1_context_);
     if (res == LIBUSB_ERROR_INTERRUPTED) {
       fprintf(stderr, "freenect1: LIBUSB_ERROR_INTERRUPTED\n");
-      continue;
+    } if (res) {
+      fprintf(stderr, "freenect1: freenect_process_events returned %d\n", res);
     }
-    CHECK_FREENECT(res);
   }
 }
 
